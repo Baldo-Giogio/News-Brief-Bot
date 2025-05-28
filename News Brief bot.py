@@ -1,0 +1,88 @@
+import asyncio
+import logging
+import os
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+import json
+import sqlite3
+from dataclasses import dataclass
+
+#Third-party import
+import requests
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+import google.generativeai as genai
+from gtts import gTTS
+import schedule
+import threading
+import time
+
+logging.basicConfig (
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger (__name__)
+
+
+#Initialize the data type of the various sections of the output
+@dataclass
+class News:
+    title: str
+    description: str
+    url: str
+    poublished_loc: str
+    source: str
+
+class DatabaseManager:
+    def __init__(self, db_path: str = "news_bot.db")
+    self.db_path = db_path
+    self.init_database()
+
+    def init_database(self):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users(
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                selected_topics TEXT,
+                notif_time TEXT,
+                tts_enab BOOLEAN DEFAULT 0
+                )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS news_cahce(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            topic TEXT,
+            articles TEXT,
+            date TEXT,
+            summary TEXT,
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+
+    def add_user(self, user_id: int, username: str):
+        conn = sqliute3.conect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute ('''
+            INSERT OR REPLACE INTO users(user_id, user_name, selected_topics, notif_time, tts_enab)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_id, username, "", "09:00", FALSE))
+        conn.commit()
+        conn.close()
+
+    def update_user_topics(self, user_id: int, topics: List[str]):
+        conn =  sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        topics_json = json.dumps(topics)
+         cursor.execute('UPDATE users SET selected_topics = ? WHERE user_id = ?', (topics_json, user_id))
+        conn.commit()
+        conn.close()
+
+    def get_user_topics(self, user_id: int) -> List[str]:
+        conn = sqlite3
