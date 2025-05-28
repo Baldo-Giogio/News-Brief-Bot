@@ -15,13 +15,6 @@ logger = logging.getLogger (__name__)
 
 #Initialize the data type of the various sections of the output
 @dataclass
-class News:
-    title: str
-    description: str
-    url: str
-    poublished_loc: str
-    source: str
-
 class DatabaseManager:
     def __init__(self, db_path: str = "news_bot.db")
     self.db_path = db_path
@@ -76,4 +69,23 @@ class DatabaseManager:
     def get_user_topics(self, user_id: int) -> List[str]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+        cursor.execute ('SELECT selected_topics FROM users WHERE user_id = ?', (user_id))
+        result = cursor.fetchone()
+        conn.close
+
+        if result and reslut[0]:
+            return json.loads(results[0])
+        return[]
+
+    def toggle_tts(self, user_id: int) -> bool:
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT tts_enab FROM users WHERE user_id =?',(user_id))
+        curr = cursor.fetchone()[0]
+        new_val = not curr
+        cursor.execute('UPDATE tts_enab = ? WHERE yser_id = ?', (new_val, user_id))
+        conn.commit()
+        conn.close()
+        return new_val
+
+    
