@@ -16,9 +16,9 @@ logger = logging.getLogger (__name__)
 #Initialize the data type of the various sections of the output
 @dataclass
 class DatabaseManager:
-    def __init__(self, db_path: str = "news_bot.db")
-    self.db_path = db_path
-    self.init_database()
+    def __init__(self, db_path: str = "news_bot.db"):
+        self.db_path = db_path
+        self.init_database()
 
     def init_database(self):
         conn = sqlite3.connect(self.db_path)
@@ -49,12 +49,12 @@ class DatabaseManager:
         conn.close()
 
     def add_user(self, user_id: int, username: str):
-        conn = sqliute3.conect(self.db_path)
+        conn = sqlite3.conect(self.db_path)
         cursor = conn.cursor()
         cursor.execute ('''
             INSERT OR REPLACE INTO users(user_id, user_name, selected_topics, notif_time, tts_enab)
             VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, username, "", "09:00", FALSE))
+        ''', (user_id, username, "", "09:00", False))
         conn.commit()
         conn.close()
 
@@ -62,7 +62,7 @@ class DatabaseManager:
         conn =  sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         topics_json = json.dumps(topics)
-         cursor.execute('UPDATE users SET selected_topics = ? WHERE user_id = ?', (topics_json, user_id))
+        cursor.execute('UPDATE users SET selected_topics = ? WHERE user_id = ?', (topics_json, user_id))
         conn.commit()
         conn.close()
 
@@ -73,8 +73,8 @@ class DatabaseManager:
         result = cursor.fetchone()
         conn.close
 
-        if result and reslut[0]:
-            return json.loads(results[0])
+        if result and result[0]:
+            return json.loads(result[0])
         return[]
 
     def toggle_tts(self, user_id: int) -> bool:
@@ -87,5 +87,3 @@ class DatabaseManager:
         conn.commit()
         conn.close()
         return new_val
-
-    
