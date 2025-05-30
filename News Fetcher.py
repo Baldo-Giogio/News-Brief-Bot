@@ -1,4 +1,5 @@
 import requests
+import os
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -36,8 +37,9 @@ class NewsAPI:
     def __init__(self, api_key: str):    
         """
         Arguments: 
-                  api_key (str): 300fb263-b20b-40cb-bf68-8e51f8f014d6
+                  api_key (str): api_key
         """
+        api_key =  os.getenv("NEWSAI_API_KEY")
         self.api_key = api_key
         self.base_url = "https://eventregistry.org/api/v1/article/getArticles"
         self.session = requests.Session()
@@ -121,10 +123,10 @@ class GenAIAnalyzer:
         Initialize AI analyzer
 
         arguments:
-            api_key (str): AIzaSyDjkOaviI9IV-94HUd22l9yv7Fl1ID7Rg0
+            api_key (str): api_key
             model_name (str): gemini-2.0-flash-live-001
         """
-        genai.configure(api_key = api_key)
+        genai.configure(api_key = os.getenv("GENAI_API_KEY"))
         self.model = genai.GenerativeModel(model_name)
 
         self.last_request_time = 0
