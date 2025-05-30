@@ -126,7 +126,8 @@ class GenAIAnalyzer:
             api_key (str): api_key
             model_name (str): gemini-2.0-flash-live-001
         """
-        genai.configure(api_key = os.getenv("GENAI_API_KEY"))
+        api_key = os.getenv("GENAI_API_KEY")
+        genai.configure(api_key)
         self.model = genai.GenerativeModel(model_name)
 
         self.last_request_time = 0
