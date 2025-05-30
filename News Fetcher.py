@@ -1,6 +1,6 @@
 import requests
-import google.generativeai as genai
-from gtts import gTTS
+import logging
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from io import BytesIO
@@ -14,7 +14,7 @@ class News:
     title: str
     description: str
     url: str
-    poublished_loc: str
+    published_loc: str
     source: str
     author : Optional[str] = None
     content : Optional[str] = None
@@ -31,34 +31,86 @@ class News:
 
 
 class NewsAPI:
-    def __init__(self, api_key: str)    
-    """
-    Arguments: 
-              api_key (str): 300fb263-b20b-40cb-bf68-8e51f8f014d6
-    """
-    self.api_key = api_key
-    self.base_url = request.get(url).json
-    self.session = request.Session()
-    self.session.headers.update({'User-Agent': 'NewsBot/1.0'})
+    def __init__(self, api_key: str):    
+        """
+        Arguments: 
+                  api_key (str): 300fb263-b20b-40cb-bf68-8e51f8f014d6
+        """
+        self.api_key = api_key
+        self.base_url = "https://eventregistry.org/api/v1/article/getArticles"
+        self.session = requests.Session()
+        self.session.headers.update({'User-Agent': 'NewsBot/1.0'})
 
-    #Rate limiting
-    self.last_request_time = 0
-    self.min_request_interval = 1
+        #Rate limiting
+        self.last_request_time = 0
+        self.min_request_interval = 1
 
 
     def _rate_limit(self):
         curr_time = time.time()
-        time_since_last = curr.time - self.last_request_time
+        time_since_last = curr_time - self.last_request_time
 
         if time_since_last <= self.min_request_interval:
             sleep_time = self.min_request_interval - time_since_last
             time.sleep(sleep_time)
 
         
-        def get_news(self, topic:str, days_back = 1, page_size: int = 20) -> List[News]
-            """
-            Arguments: 
-            topic (str): News topic to gather information on 
-            days_back (int): Number of days to consider
-            page_size (int): Number of articless to fetch
-            """
+    def get_news(self, topic:str, days_back = 1, page_size: int = 20) -> List[News]:
+        """
+        Arguments: 
+        topic (str): News topic to gather information on 
+        days_back (int): Number of days to consider
+        page_size (int): Number of articless to fetch
+
+        Returns:
+            List[News]: list of news articles
+        """
+
+        try: 
+            self.rate_limit()
+            end_date = datetime.now()
+            start_date = end_date -timedelta(days = days_back)
+
+            parameters = {
+                'top': topic,
+                'apiKey': self.api_key,
+                'lang': 'en',
+                'sortBy': 'publishedAt',
+                'from': start_date.strftime('%m-%d-%Y'),
+                'to': end_date.strftime('%m-%d-%Y'),
+                'pagesize': min(page_size, 80)
+            }
+
+            response = self.session.get(f"{self.base_url}/everything", parameters = parameters, timeout = 10)
+            response.raise_for_status
+
+            data = response.json()
+
+            if data.get('status')!= 'ok':
+                logger.error(f"NewsAPI error: {data.get('message','unkown error')}")
+                return[]
+            articles = []
+            for article_data in data.get('articles', []):
+                if not article_data.get('title') or not article_data.get('desvription'):
+                    continue
+
+                article = News(
+                        title = article_data['title'],
+                        description = article_data['description'],
+                        url = article_data['url'],
+                        published_loc = article_data['publishedAt'],
+                        source = article_data['source']['name'],
+                        author = article_data.get('author'),
+                        content = article_data.get('content')
+                )
+                articles.append(article)
+
+            logger.info(f"Fetched {len(articles)} articles for topic: {topic}")
+            return articles[:page_size]
+        
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching news for the topic: {topic}")
+            return[]
+            
+class GenAIAnalyzer:
+    
