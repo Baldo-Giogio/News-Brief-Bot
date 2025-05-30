@@ -6,6 +6,8 @@ from dataclasses import dataclass, asdict
 from io import BytesIO
 import json
 import time
+import google.generativeai as genai
+from gtts import gTTS
 
 logger = logging.getLogger(__name__)
 
@@ -113,4 +115,58 @@ class NewsAPI:
             return[]
             
 class GenAIAnalyzer:
-    
+
+    def __init__(self, api_key: str, model_name: str = 'gemini-pro'):
+        """ 
+        Initialize AI analyzer
+
+        arguments:
+            api_key (str): AIzaSyDjkOaviI9IV-94HUd22l9yv7Fl1ID7Rg0
+            model_name (str): gemini-2.0-flash-live-001
+        """
+        genai.configure(api_key = api_key)
+        self.model = genai.GenerativeModel(model_name)
+
+        self.last_request_time = 0
+        self.min_request_interval = 1
+
+    def _rate_limit(self):
+        curr_time = time.time()
+        time_since_last = curr_time -self.last_request_time
+
+        if time_since_last < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last
+            time.sleep(sleep_time)
+
+        self.last_request_time = time.time()
+
+    def analy_and_sum(self, articles: List[News], topic: str, analy_type: str = "comprehensive") -> str:
+        """
+        arguments:
+            articles (List[News]): list of news articles 
+            topic(str): topics being analyzed
+            analy_type (str): type of analysis (comprehensive, breif)
+
+            returns: 
+                str: AI generated analysis and summary
+        """
+        if not articles:
+            return f" No recent news found for topic: **{topic}**"
+        
+        try: 
+            self._rate_limit()
+            articles_text = self._prepare_articles_text(articles)
+
+            prompt = self._get_analy_propmt(topic, articles_text, analy_type)
+
+            response = self.model.generate_content(prompt)
+
+            if response.text:
+                form_response = self._format_response(response.text, topic, len(articles))
+                logger.info(f"AI Analysis for topic: {topic}")
+                return form_response
+            
+        except Exception as e:
+            logger.error(f"Error generating analysis for topic {topic}: {e}")
+            return self._create_fallback_summary(articles, topic)
+        
